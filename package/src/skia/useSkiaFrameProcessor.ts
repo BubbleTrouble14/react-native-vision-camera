@@ -129,18 +129,16 @@ interface Size {
  * Get the size of the surface that will be used for rendering, which already accounts
  * for the Frame's {@linkcode Frame.orientation orientation}.
  */
-function getSurfaceSize(frame: Frame): Size {
+function getSurfaceSize(frame: Frame, previewOrientation: ISharedValue<Orientation>): Size {
   'worklet'
-  switch (frame.orientation) {
-    case 'portrait':
-    case 'portrait-upside-down':
-      return { width: frame.width, height: frame.height }
-    case 'landscape-left':
-    case 'landscape-right':
-      return { width: frame.height, height: frame.width }
+  if (previewOrientation.value === 'landscape-left' || previewOrientation.value === 'landscape-right') {
+    // it is rotated to some side, so we need to apply rotations first.
+    return { width: frame.width, height: frame.height }
+  } else {
+    // it is already rotated upright.
+    return { width: frame.height, height: frame.width }
   }
 }
-
 /**
  * Create a new Frame Processor function which you can pass to the `<Camera>`.
  * (See ["Frame Processors"](https://react-native-vision-camera.com/docs/guides/frame-processors))
@@ -197,7 +195,7 @@ export function createSkiaFrameProcessor(
     // A true workaround would be to expose Skia Contexts to JS in RN Skia,
     // but for now this is fine.
     const threadId = Worklets.getCurrentThreadId()
-    const size = getSurfaceSize(frame)
+    const size = getSurfaceSize(frame, previewOrientation)
     if (
       surfaceHolder.value[threadId] == null ||
       surfaceHolder.value[threadId]?.width !== size.width ||
